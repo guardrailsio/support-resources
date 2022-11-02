@@ -1,0 +1,75 @@
+
+apiVersion: troubleshoot.sh/v1beta2
+kind: Preflight
+metadata:
+  name: guardrails-enterprise
+spec:
+  analyzers:
+    - clusterVersion:
+        outcomes:
+          - fail:
+              when: "< 1.19.0"
+              message: GuardRails requires Kubernetes 1.19.0 or later, and recommends 1.20.0.
+              uri: https://www.kubernetes.io
+          - warn:
+              when: "< 1.20.0"
+              message: Your cluster meets the minimum version of Kubernetes, but we recommend you update to 1.20.0 or later.
+              uri: https://kubernetes.io
+          - warn:
+              when: ">= 1.25.0"
+              message: Your cluster meets the minimum version of Kubernetes, but version 1.25.0 or later is not tested.
+          - pass:
+              when: ">= 1.21.0"
+              message: Your cluster meets the recommended and required versions of Kubernetes.
+    - distribution:
+        outcomes:
+          - pass:
+              when: "== gke"
+              message: GKE is a supported platform
+          - pass:
+              when: "== aks"
+              message: AKS is a supported platform
+          - pass:
+              when: "== eks"
+              message: EKS is a supported platform
+          - warn:
+              message: The Kubernetes platform is not validated, but there are no known compatibility issues.
+    - containerRuntime:
+        outcomes:
+          - pass:
+              when: "== docker"
+              message: Docker container runtime was found.
+          - pass:
+              when: "== containerd"
+              message: ContainerD container runtime was found.
+          - pass:
+              when: "== robin"
+              message: Robin container runtime was found.
+          - pass:
+              when: "== cri-o"
+              message: CRI-O container runtime was found.
+          - fail:
+              message: Did not find Docker container runtime.
+    - nodeResources:
+        checkName: Must have at least 1 nodes. 3 or more nodes is recommended.
+        outcomes:
+          - fail:
+              when: "count() < 1"
+              message: This application requires at least 1 nodes
+          - warn:
+              when: "count() < 3"
+              message: This application runs better with 3 or more nodes
+          - pass:
+              message: This cluster has enough nodes.
+    - nodeResources:
+        checkName: One node must have 4 GB RAM and 4 CPU Cores
+        filters:
+          allocatableMemory: 4Gi
+          cpuCapacity: "4"
+        outcomes:
+          - warn:
+              when: count() < 1
+              message: Cannot find a node with sufficient memory and cpu
+          - pass:
+              message: Sufficient CPU and memory is available
+    - storageClass: {}
